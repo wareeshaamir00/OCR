@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-image = cv2.imread("test subjects/deskew.png")
 
 def resize(image):
     image = cv2.resize(image, None, fx = 2, fy = 2, interpolation=cv2.INTER_CUBIC)
@@ -74,7 +73,3 @@ def preprocess(image):
         image = threshold(image)
     image = contour(image)
     return image
-processed = resize(image)
-cv2.imshow("Preprocessed Image", threshold(bw(resize(image))))
-cv2.waitKey(0)
-cv2.destroyAllWindows()
