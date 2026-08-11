@@ -1,20 +1,56 @@
 import pytesseract
-from main import preprocess
 import cv2
+import os
+from main import firstpipe, secondpipe, thirdpipe, fourthpipe, fifthpipe
+import xml.etree.ElementTree as ET
+import jiwer
 
-input = input("Enter the path of the image: ")
-image = cv2.imread(input)
-def psm(image):
-    height,width = image.shape[:2]
-    area = height*width
-    if width > height * 1.5:
-        return 4
-    elif area < 300000:
-        return 11
-    else:
-        return 6
+pipelines = {
+    "otsu": firstpipe,
+    "adaptive": secondpipe,
+    "threshold": thirdpipe,
+    "denoise": fourthpipe,
+    "contrast": fifthpipe
+}
 
-psm = psm(image)
-text = pytesseract.image_to_string(image, config=f"--oem 3 --psm {psm}")
-with open("output/text.txt", "w", encoding="utf-8") as f:
-    f.write(text)
+tree = ET.parse("annotation/annotations.xml")
+root = tree.getroot()
+ground = { }
+for image in root.findall(".//image"):
+    name = image.get("name")
+    fname = os.path.splitext(os.path.basename(name))[0]
+    texts = []
+    for attribute in image.findall(".//attribute[@name='text']"):
+        texts.append(attribute.text)
+
+    ground[fname] = " ".join(texts)
+
+folder = "test subjects"
+dict = {
+    "otsu": [],
+    "adaptive": [],
+    "threshold" : [],
+    "denoise" : [],
+    "contrast" : []
+ }
+bestp = {}
+for current, _, files in os.walk(folder):
+    for filename in files:
+        if filename.lower().endswith((".png", ".jpg", ".jpeg")):
+            path = os.path.join(current, filename)
+            image = cv2.imread(path)
+            img = {}
+            for name, pipeline in pipelines.items():
+                processed = pipeline(image)
+                id = os.path.splitext(filename)[0]
+                text = pytesseract.image_to_string(processed)
+                reference = ground[id]
+                result = jiwer.process_words(reference, text)
+                dict[name].append(result.wer)
+                img[name] = result.wer
+                minimum = min(img, key=img.get)
+                bestp[filename] = minimum
+                bestpipeline = pipelines[bestp[filename]]
+                image2 = bestpipeline(image)
+                cv2.imwrite(os.path.join("output", filename), image2)
+            print(img)
