@@ -52,5 +52,8 @@ for current, _, files in os.walk(folder):
                 bestp[filename] = minimum
                 bestpipeline = pipelines[bestp[filename]]
                 image2 = bestpipeline(image)
-                cv2.imwrite(os.path.join("output", filename), image2)
-            print(img)
+                texts = pytesseract.image_to_string(image2)
+                output = os.path.join("output", os.path.splitext(filename)[0] + ".txt")
+                with open(output, "w", encoding = "utf-8") as f:
+                    f.write(texts)
+                    
