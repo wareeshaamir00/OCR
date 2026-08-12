@@ -1,9 +1,10 @@
 import pytesseract
 import cv2
 import os
-from main import firstpipe, secondpipe, thirdpipe, fourthpipe, fifthpipe
 import xml.etree.ElementTree as ET
 import jiwer
+from main import firstpipe, secondpipe, thirdpipe, fourthpipe, fifthpipe
+from collections import Counter
 
 pipelines = {
     "otsu": firstpipe,
@@ -25,7 +26,6 @@ for image in root.findall(".//image"):
 
     ground[fname] = " ".join(texts)
 
-folder = "test subjects"
 dict = {
     "otsu": [],
     "adaptive": [],
@@ -33,7 +33,10 @@ dict = {
     "denoise" : [],
     "contrast" : []
  }
+
+folder = "test subjects"
 bestp = {}
+
 for current, _, files in os.walk(folder):
     for filename in files:
         if filename.lower().endswith((".png", ".jpg", ".jpeg")):
@@ -49,11 +52,4 @@ for current, _, files in os.walk(folder):
                 dict[name].append(result.wer)
                 img[name] = result.wer
                 minimum = min(img, key=img.get)
-                bestp[filename] = minimum
-                bestpipeline = pipelines[bestp[filename]]
-                image2 = bestpipeline(image)
-                texts = pytesseract.image_to_string(image2)
-                output = os.path.join("output", os.path.splitext(filename)[0] + ".txt")
-                with open(output, "w", encoding = "utf-8") as f:
-                    f.write(texts)
-                    
+                print(filename, result.wer, repr(text))
